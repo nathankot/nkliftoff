@@ -75,6 +75,7 @@ app_target_templates:
         - UIViewController+.swift
         - String+.swift
         - Request+.swift
+        - Object+.swift
       - Protocols:
         - Encodable.swift
         - RequestConvertible.swift

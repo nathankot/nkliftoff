@@ -1,0 +1,8 @@
+#import "<%= project_name %>-Prefix.pch"
+
+#ifdef __OBJC__
+<% if dependency_manager_enabled?("cocoapods") %>
+<% else %>
+  @import XCTest;
+<% end %>
+#endif

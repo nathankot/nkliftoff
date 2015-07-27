@@ -30,6 +30,7 @@ templates:
   - test.sh: bin/test
   - setup.sh: bin/setup
   - README.md: README.md
+  - .editorconfig: .editorconfig
 
 warnings:
   - GCC_WARN_INITIALIZER_NOT_FULLY_BRACKETED
@@ -64,7 +65,6 @@ project_template: swift
 app_target_templates:
   swift:
     - <%= project_name %>:
-      - .editorconfig
       - Library:
         - Api.swift
         - RequestStatus.swift
@@ -106,3 +106,4 @@ test_target_templates:
       - Fixtures:
       - Helpers:
       - Tests:
+        - <%= project_name %>Tests.swift

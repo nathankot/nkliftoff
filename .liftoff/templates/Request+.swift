@@ -1,5 +1,5 @@
 //
-//  Request.swift
+//  Request+.swift
 //  <%= project_name %>
 //
 //  Created by <%= author %> on <%= Time.now.strftime("%-m/%-d/%y") %>
@@ -17,7 +17,7 @@ import func Swiftz.find
 // Alamofire extensions that help with retrieving any `ResponseConvertible`
 extension Alamofire.Request {
 
-  public func responseObjects<T: ResponseConvertible>
+  public func responseObjects<T: ResponseConvertible where T == T.DecodedType>
   (completionHandler: (Int?, [T]?, RequestError?) -> ())
   -> Self {
     return self.responseJSON { (request, response, json_, e) in
@@ -56,7 +56,7 @@ extension Alamofire.Request {
     }
   }
 
-  public func responseObject<T: ResponseConvertible>
+  public func responseObject<T: ResponseConvertible where T == T.DecodedType>
   (completionHandler: (Int?, T?, RequestError?) -> ())
   -> Self {
     return self.responseJSON { (request, response, json_, e) in
@@ -75,7 +75,8 @@ extension Alamofire.Request {
     }
   }
 
-  public func rx_responseObjects<T: ResponseConvertible>() -> Observable<(Int?, [T]?, RequestError?)> {
+  public func rx_responseObjects<T: ResponseConvertible where T == T.DecodedType>
+  () -> Observable<(Int?, [T]?, RequestError?)> {
     return create { observer in
       self.responseObjects { (status: Int?, entities: [T]?, error: RequestError?) in
         sendNext(observer, (status, entities, error))
@@ -87,7 +88,8 @@ extension Alamofire.Request {
     }
   }
 
-  public func rx_responseObject<T: ResponseConvertible>() -> Observable<(Int?, T?, RequestError?)> {
+  public func rx_responseObject<T: ResponseConvertible where T == T.DecodedType>
+  () -> Observable<(Int?, T?, RequestError?)> {
     return create { observer in
       self.responseObject { (status: Int?, entity: T?, error: RequestError?) in
         sendNext(observer, (status, entity, error))
@@ -140,34 +142,31 @@ extension Alamofire.Request {
     return error
   }
 
-  private func getObjectFromJSON<T: ResponseConvertible>
-  (json: [String: AnyObject]?)
+  private func getObjectFromJSON<T: ResponseConvertible where T == T.DecodedType>
+  (_json: [String: AnyObject]?)
   -> (T?, NSError?) {
-    if json == nil {
-      return (nil, NSError(
-                domain: "jsondecode",
-                code: -1,
-                userInfo: ["\(NSLocalizedDescriptionKey)":
-                          "Server responded with incorrect format"]))
+    let result: (T?, NSError?)
+    if let json: AnyObject = _json {
+      let decoded: Decoded<T> = decode(json)
+      switch decoded {
+      case .Success(let box):
+        result = (box.value, nil)
+      case .TypeMismatch(let e):
+        result = (nil, makeDecodeNSError(e))
+      case .MissingKey(let e):
+        result = (nil, makeDecodeNSError(e))
+      }
+    } else {
+      result = (nil, makeDecodeNSError("Server responded with incompatable format"))
     }
 
-    let j = JSON.parse(json!)
-    let decoded = T.decode(j)
-    switch decoded {
-    case .Success(let box):
-      return (box.value as? T, nil)
-    case .TypeMismatch(let e):
-      return (nil, NSError(
-                domain: "jsondecode",
-                code: 1,
-                userInfo: ["\(NSLocalizedDescriptionKey)": e]))
-    case .MissingKey(let e):
-      return (nil, NSError(
-                domain: "jsondecode",
-                code: 2,
-                userInfo: ["\(NSLocalizedDescriptionKey)": e]))
-    }
+    return result as (T?, NSError?)
+  }
 
+  private func makeDecodeNSError(message: String) -> NSError {
+    return NSError(domain: "jsondecode",
+                   code: Int(1),
+                   userInfo: ["\(NSLocalizedDescriptionKey)": message])
   }
 
 }
